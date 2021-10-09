@@ -11,14 +11,18 @@ changeColor.addEventListener("click", async () => {
   
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      function: setPageBackgroundColor,
+      function: setPageBackgroundColor, //change color
     });
   });
   
   // The body of this function will be executed as a content script inside the
   // current page
-  function setPageBackgroundColor() {
-    chrome.storage.sync.get("color", ({ color }) => {
-      document.body.style.backgroundColor = color;
-    });
+  function setPageBackgroundColor() { //alter this
+    // chrome.storage.sync.get("color", ({ color }) => {
+    //   document.body.style.backgroundColor = color;
+    // });
+    const addCSS = s => document.head.appendChild(document.createElement("style")).innerHTML=s;
+
+    addCSS("html { -webkit-filter: grayscale(100%); -moz-filter: grayscale(100%); filter: grayscale(100%); </style>");
   }
+
