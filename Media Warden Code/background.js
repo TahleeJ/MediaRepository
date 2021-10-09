@@ -1,4 +1,3 @@
-// import { Stopwatch } from "./stopwatch";
 self.importScripts("./stopwatch.js");
 
 const media_blacklist_sites = ["facebook.com", "instagram.com", "reddit.com", "twitter.com", "youtube.com"];
