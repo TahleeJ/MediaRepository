@@ -1,10 +1,12 @@
 self.importScripts("./stopwatch.js");
+self.importScripts("./popup.js");
 
 const media_blacklist_sites = ["https://www.facebook.com", "https://www.instagram.com", "https://www.reddit.com", "https://www.twitter.com", "https://www.youtube.com", "https://tiktok.com"];
-let media_blacklist_active_tabs = new Map();
+var media_blacklist_active_tabs = new Map();
 var warden_shutdown = false;
 const warden_timer_threshold = 15;
 var warden_timer = warden_timer_threshold;
+var decrementedTime = warden_timer * 60;
 
 chrome.storage.local.get("session_time_sum", function(result) {
     if (result == null) {
@@ -121,9 +123,16 @@ function cycleSites(tab) {
         if (tab.url.includes(site_url)) {
             if (media_blacklist_active_tabs.size == 0) {
                 startStopwatch();
-                chrome.alarms.create({delayInMinutes : warden_timer});
-                chrome.alarms.onAlarm.addListener(() => {
-                    wardenShutdown(tab.id)
+                chrome.alarms.create("shutdown", {delayInMinutes : warden_timer});
+                chrome.alarms.create("update", {when : 1000, periodInMinutes : (1/60)});
+                chrome.alarms.onAlarm.addListener((alarm) => {
+                    if (alarm.name == "shutdown") {
+                        wardenShutdown(tab.id);
+                        chrome.alarms.clearAll();
+                    } else {
+                        updateTimeDisplay(decrementedTime);
+                        decrementedTime--;
+                    }      
                 });
             }
 
@@ -150,8 +159,8 @@ function checkEndSession(logText) {
         var new_session_time = stopStopwatch();
         resetStopwatch();
         setWardenAlarm();
-        warden_shutdown = false;
         chrome.alarms.clearAll();
+        warden_shutdown = false;
         
         chrome.storage.local.get("session_time_sum", function(new_sum) {
             var prev_session_sum = new_sum.session_time_sum;
@@ -218,7 +227,6 @@ function generateTimeSum(oldSum, newSession) {
 }
 
 function wardenShutdown(tabId) {
-    console.log("Timer reached");
     warden_shutdown = true;
    
     chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%);}"});
@@ -236,6 +244,7 @@ function setWardenAlarm() {
             }
 
             warden_timer /= 60;
+            decrementedTime = warden_timer * 60;
        });
     });
 }
