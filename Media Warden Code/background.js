@@ -3,6 +3,7 @@ self.importScripts("./stopwatch.js");
 const media_blacklist_sites = ["https://www.facebook.com", "https://www.instagram.com", "https://www.reddit.com", "https://www.twitter.com", "https://www.youtube.com", "https://tiktok.com"];
 let media_blacklist_active_tabs = new Map();
 const storage_key = "media_warden_key_v8";
+var warden_shutdown = false;
 
 chrome.storage.local.get("session_time_sum", function(result) {
     if (result == null) {
@@ -32,7 +33,6 @@ chrome.tabs.onCreated.addListener((tab) =>{
     if (tab.status = "complete") {
         if (tab.url != null) {
             console.log(`New tab created: ${tab.url}`);
-            // wardenShutdown();
         }
     }
 });
@@ -49,19 +49,45 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
                 // Check if the tab's url is one for one of the blacklisted social media sites
                 media_blacklist_sites.forEach((url) => {
                     if (tab.url.includes(url)) {
-                        chrome.alarms.create({delayInMinutes : .1});
-                        chrome.alarms.onAlarm.addListener(() => {
-                            wardenShutdown(tab.id)
-                        })
-
                         if (media_blacklist_active_tabs.size == 0) {
                             startStopwatch();
-                            console.log("Reached blocked webpage.");                    
+                            console.log("Reached blocked webpage.");  
+                            
+                            chrome.alarms.create({delayInMinutes : .1});
+                            chrome.alarms.onAlarm.addListener(() => {
+                                wardenShutdown(tab.id)
+                            })
                         }
 
                         // Add tab to "blacklisted tabs" collection if it is on a blacklisted site
                         media_blacklist_active_tabs.set(tab.id, {"original_url": url});
                         console.log(`You have opened a tab for ${url}`);
+
+                        if (warden_shutdown) {
+                            wardenShutdown(tab.id);
+                        }
+                    }
+                });
+            } else if (chrome.tabs.get(tabId).active == true) {
+                media_blacklist_sites.forEach((url) => {
+                    if (tab.url.includes(url)) {
+                        if (media_blacklist_active_tabs.size == 0) {
+                            startStopwatch();
+                            console.log("Reached blocked webpage.");  
+                            
+                            chrome.alarms.create({delayInMinutes : .1});
+                            chrome.alarms.onAlarm.addListener(() => {
+                                wardenShutdown(tab.id)
+                            })
+                        }
+
+                        // Add tab to "blacklisted tabs" collection if it is on a blacklisted site
+                        media_blacklist_active_tabs.set(tab.id, {"original_url": url});
+                        console.log(`You have opened a tab for ${url}`);
+
+                        if (warden_shutdown) {
+                            wardenShutdown(tab.id);
+                        }
                     }
                 });
             } else if (!changeInfo.url.includes(media_blacklist_active_tabs.get(tab.id).original_url)) {
@@ -105,12 +131,47 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
     }
 });
 
+chrome.tabs.onActivated.addListener((activeInfo) => handleActive(activeInfo));
+
+async function handleActive(activeInfo) {
+    chrome.tabs.get(activeInfo.tabId, async(tab) => {
+        let status = tab.status;
+
+        while (tab.status != "complete") {
+            await chrome.tabs.update(activeInfo.tabId, { status });
+        }
+
+        media_blacklist_sites.forEach((site_url) => {
+            if (tab.url.includes(site_url)) {
+                if (media_blacklist_active_tabs.size == 0) {
+                    startStopwatch();
+                    console.log("Reached blocked webpage.");  
+                    
+                    chrome.alarms.create({delayInMinutes : .1});
+                    chrome.alarms.onAlarm.addListener(() => {
+                        wardenShutdown(activeInfo.tabId)
+                    })
+                }
+    
+                // Add tab to "blacklisted tabs" collection if it is on a blacklisted site
+                media_blacklist_active_tabs.set(activeInfo.tabId, {"original_url": tab.url});
+                console.log(`You have opened a tab for ${tab.url}`);
+    
+                if (warden_shutdown) {
+                    wardenShutdown(activeInfo.tabId);
+                }
+            }
+        });
+    })
+}
+
 function checkEndSession(logText) {
     if (media_blacklist_active_tabs.size == 0) {
         console.log(logText);
 
         var new_session_time = stopStopwatch();
         resetStopwatch();
+        warden_shutdown = false;
         
         chrome.storage.local.get("session_time_sum", function(new_sum) {
             var prev_session_sum = new_sum.session_time_sum;
@@ -173,11 +234,13 @@ function generateTimeSum(oldSum, newSession) {
     }
 
     var result = [newSum, newSumInt];
-    
+
     return result;
 }
+
 function wardenShutdown(tabId) { //alter this
     console.log("Timer reached");
+    warden_shutdown = true;
    
     chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%); }"});
  
