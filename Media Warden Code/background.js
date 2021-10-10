@@ -1,6 +1,6 @@
 self.importScripts("./stopwatch.js");
 
-const media_blacklist_sites = ["facebook.com", "instagram.com", "reddit.com", "twitter.com", "youtube.com"];
+const media_blacklist_sites = ["facebook.com", "instagram.com", "reddit.com", "twitter.com", "youtube.com", "tiktok.com"];
 let media_blacklist_active_tabs = new Map();
 
 // Listen for new tabs being created
@@ -77,6 +77,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 function wardenShutdown(tabId) { //alter this
     console.log("Timer reached");
    
-    chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%); }"});
+    chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%);}"});
  
 }
