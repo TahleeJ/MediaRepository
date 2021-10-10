@@ -32,9 +32,11 @@ chrome.tabs.onCreated.addListener((tab) =>{
     if (tab.status = "complete") {
         if (tab.url != null) {
             console.log(`New tab created: ${tab.url}`);
+            // wardenShutdown();
         }
     }
 });
+
 
 // Listen for tabs being updated with respect to their url
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -47,14 +49,19 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
                 // Check if the tab's url is one for one of the blacklisted social media sites
                 media_blacklist_sites.forEach((url) => {
                     if (tab.url.includes(url)) {
-                        console.log("You have entered a blacklisted site");
+                        chrome.alarms.create({delayInMinutes : .1});
+                        chrome.alarms.onAlarm.addListener(() => {
+                            wardenShutdown(tab.id)
+                        })
 
                         if (media_blacklist_active_tabs.size == 0) {
                             startStopwatch();
+                            console.log("Reached blocked webpage.");                    
                         }
 
                         // Add tab to "blacklisted tabs" collection if it is on a blacklisted site
                         media_blacklist_active_tabs.set(tab.id, {"original_url": url});
+                        console.log(`You have opened a tab for ${url}`);
                     }
                 });
             } else if (!changeInfo.url.includes(media_blacklist_active_tabs.get(tab.id).original_url)) {
@@ -166,5 +173,12 @@ function generateTimeSum(oldSum, newSession) {
     }
 
     var result = [newSum, newSumInt];
+    
     return result;
+}
+function wardenShutdown(tabId) { //alter this
+    console.log("Timer reached");
+   
+    chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%); }"});
+ 
 }
