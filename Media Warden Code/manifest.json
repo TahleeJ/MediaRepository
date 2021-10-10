@@ -2,6 +2,10 @@
     "name": "Media Warden",
     "description": "Have a background script discourage your continuous social media usage",
     "version": "1.0",
+    "icons": {"150": "images/150_WardenIcon.png"},
+    "browser_action": {
+      "default_icon": "images/150_WardenIcon.png"
+    },
     "manifest_version": 3,
     "background": {
         "service_worker": "background.js"
