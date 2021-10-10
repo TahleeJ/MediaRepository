@@ -241,7 +241,7 @@ function generateTimeSum(oldSum, newSession) {
 function wardenShutdown(tabId) { //alter this
     console.log("Timer reached");
     warden_shutdown = true;
-   
+    //Insert CSS code for adding webpage filters to the current blacklisted media tab
     chrome.scripting.insertCSS({target: {tabId: tabId}, css: "html { -webkit-filter: saturate(7) blur(1px) contrast(180%); -moz-filter: saturate(7) blur(1px) contrast(180%); filter: saturate(7) blur(1px) contrast(180%);}"});
  
 }
